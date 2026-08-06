@@ -72,7 +72,7 @@ site. The input never imports react-hook-form or shadcn.
 
 Two error channels, two owners: keystroke-level errors (invalid character)
 belong to the input and show inline; form-level errors (validation `rules`,
-schema) belong to react-hook-form and surface through `<FormMessage />`.
+schema) belong to react-hook-form and surface through `<FieldError />`.
 
 ## Getting Started
 
