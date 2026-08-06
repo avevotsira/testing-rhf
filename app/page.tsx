@@ -2,28 +2,28 @@
 
 import { useEffect, useState } from "react";
 import { NextIntlClientProvider } from "next-intl";
-import { useForm, useWatch } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { CurrencyInput } from "@/src/components/currency-input";
+import { PhoneInput } from "@/src/components/phone-input";
 import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/src/components/ui/form";
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/src/components/ui/field";
 
 const messages = {
   common: {
     currency_invalid_khr: "Digits only — KHR amounts have no decimals",
+    phone_invalid_kh: "Digits only, max 10",
   },
 };
 
 type Entry = { t: string; msg: string };
 
 export default function Playground() {
-  const form = useForm({ defaultValues: { amount: 0 } });
+  const form = useForm({ defaultValues: { amount: 0, phone: "" } });
   const [log, setLog] = useState<Entry[]>([]);
   const push = (msg: string) =>
     setLog((l) =>
@@ -49,30 +49,58 @@ export default function Playground() {
           CurrencyInput lifecycle playground
         </h1>
 
-        <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit((data) =>
-              push(
-                `submit -> ${JSON.stringify(data)} (typeof amount: ${typeof data.amount})`,
-              ),
-            )}
-            className="flex flex-col gap-4"
-          >
-            <FormField
+        <form
+          onSubmit={form.handleSubmit((data) =>
+            push(
+              `submit -> ${JSON.stringify(data)} (typeof amount: ${typeof data.amount})`,
+            ),
+          )}
+        >
+          <FieldGroup className="gap-4">
+            <Controller
               control={form.control}
               name="amount"
               rules={{
                 validate: (v) => v <= 10_000_000 || "Max 10,000,000 KHR",
               }}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Amount</FormLabel>
-                  <FormControl>
-                    <CurrencyInput placeholder="0" {...field} />
-                  </FormControl>
-                  <FormDescription>Amount in Khmer Riel.</FormDescription>
-                  <FormMessage />
-                </FormItem>
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor={field.name}>Amount</FieldLabel>
+                  <CurrencyInput
+                    id={field.name}
+                    placeholder="0"
+                    aria-invalid={fieldState.invalid}
+                    {...field}
+                  />
+                  <FieldDescription>Amount in Khmer Riel.</FieldDescription>
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
+              )}
+            />
+
+            <Controller
+              control={form.control}
+              name="phone"
+              rules={{
+                validate: (v) =>
+                  v === "" || v.length >= 8 || "Enter at least 8 digits",
+              }}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor={field.name}>Phone</FieldLabel>
+                  <PhoneInput
+                    id={field.name}
+                    placeholder="12 345 678"
+                    aria-invalid={fieldState.invalid}
+                    {...field}
+                  />
+                  <FieldDescription>Cambodian mobile number.</FieldDescription>
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
               )}
             />
 
@@ -99,16 +127,16 @@ export default function Playground() {
                 onClick={() => {
                   push("async defaults in 800ms…");
                   setTimeout(() => {
-                    push("reset({ amount: 1234567 })");
-                    form.reset({ amount: 1234567 });
+                    push("reset({ amount: 1234567, phone: '12345678' })");
+                    form.reset({ amount: 1234567, phone: "12345678" });
                   }, 800);
                 }}
               >
                 async defaults
               </button>
             </div>
-          </form>
-        </Form>
+          </FieldGroup>
+        </form>
 
         <div className="rounded border p-4 text-sm">
           <p>

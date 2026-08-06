@@ -1,5 +1,79 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Form field pattern
+
+Forms follow the current [shadcn/ui react-hook-form pattern](https://ui.shadcn.com/docs/forms/react-hook-form):
+a [react-hook-form](https://react-hook-form.com) store as the single source of
+truth, **pure input components** that know nothing about the form, and shadcn's
+`Field*` components for layout — wiring is explicit via `Controller`.
+
+```
+src/components/ui/field.tsx     shadcn field.tsx (Field, FieldLabel, FieldError,
+                                FieldDescription, FieldGroup, …) — verbatim clone
+src/components/currency-input.tsx   pure input: value/onChange props only
+src/lib/currency-input-util.ts      pure helpers: parse / format / typingRegex
+src/components/phone-input.tsx      second sample — form value IS the raw string,
+                                    so no local raw state / render-sync needed
+src/lib/phone-input-util.ts         pure helper: formatPhone
+app/page.tsx                        usage example (lifecycle playground)
+```
+
+### Usage
+
+```tsx
+<form onSubmit={form.handleSubmit(onSubmit)}>
+  <Controller
+    control={form.control}
+    name="amount"
+    render={({ field, fieldState }) => (
+      <Field data-invalid={fieldState.invalid}>
+        <FieldLabel htmlFor={field.name}>Amount</FieldLabel>
+        <CurrencyInput
+          id={field.name}
+          placeholder="0"
+          aria-invalid={fieldState.invalid}
+          {...field}
+        />
+        <FieldDescription>Amount in Khmer Riel.</FieldDescription>
+        {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+      </Field>
+    )}
+  />
+</form>
+```
+
+Unlike the older `FormField`/`FormControl` layer, nothing is injected through
+context or `Slot` — `id`, `aria-invalid`, and the `{...field}` wiring
+(`value`, `onChange`, `onBlur`, `name`, `ref`) are all visible at the call
+site. The input never imports react-hook-form or shadcn.
+
+### Rules for writing a new input component
+
+1. **Pure and controlled**: take `value` and `onChange`, own no form state.
+   The form only ever receives clean data from `onChange` (e.g. `CurrencyInput`
+   always emits an integer, never a string or `NaN`).
+2. **Display ≠ data.** If the box shows a formatted string ("1,234,567"), keep
+   the raw string in local state and derive the display. Parse the raw string
+   for `onChange`; never parse the formatted one.
+3. **React to external writes** (`form.reset()`, async defaults) with the
+   ["adjust state during render"](https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes)
+   pattern, not `useEffect`. Guard with a value comparison so your own
+   `onChange` echo doesn't clobber in-progress typing.
+4. **Reject bad keystrokes by not updating state.** A controlled input snaps
+   back to the rendered value automatically; no `preventDefault` needed.
+5. **Merge, don't overwrite, aria props.** Append your local error id to any
+   `aria-describedby` passed by the caller; OR your local error into
+   `aria-invalid`. Render the error `<p>` unconditionally with
+   `aria-live="polite"`.
+6. **Forward everything else** (`id`, `placeholder`, `ref`, …) onto the real
+   `<input>`. Use `type="text"` + `inputMode="numeric"` for numbers —
+   `type="number"` fights formatted display and fires `onChange` with empty
+   strings for partial input.
+
+Two error channels, two owners: keystroke-level errors (invalid character)
+belong to the input and show inline; form-level errors (validation `rules`,
+schema) belong to react-hook-form and surface through `<FormMessage />`.
+
 ## Getting Started
 
 First, run the development server:
