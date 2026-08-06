@@ -49,9 +49,17 @@ site. The input never imports react-hook-form or shadcn.
 
 ### Rules for writing a new input component
 
-1. **Pure and controlled**: take `value` and `onChange`, own no form state.
-   The form only ever receives clean data from `onChange` (e.g. `CurrencyInput`
-   always emits an integer, never a string or `NaN`).
+A pass-through input needs only rules 1 and 6. Rules 2–5 kick in once the
+component transforms the value or rejects keystrokes.
+
+1. **Stay a pipe unless you transform.** If the input shows the form value
+   as-is, do NOT declare `value`/`onChange` — spread `{...props}` onto
+   `<input>` and let `{...field}` flow through untouched (this is what
+   shadcn's own `Input` does). Only name `value` and `onChange` when the
+   component must convert between them (number ↔ formatted string), like
+   `CurrencyInput`. Either way: own no form state, and the form only ever
+   receives clean data (`CurrencyInput` always emits an integer, never a
+   string or `NaN`).
 2. **Display ≠ data.** If the box shows a formatted string ("1,234,567"), keep
    the raw string in local state and derive the display. Parse the raw string
    for `onChange`; never parse the formatted one.
